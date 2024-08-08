@@ -13,7 +13,7 @@ def replace_fstab(all_mounts: AllMounts, ramdisk_base: str) -> None:
     fstab_lines = []
 
     for mount in all_mounts:
-        if mount.is_physical() or mount.fstype is "swap":
+        if mount.is_physical() or mount.fstype == "swap":
             continue
         else:
             fstab_lines.append(mount.to_fstab_line())

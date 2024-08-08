@@ -15,3 +15,5 @@ RUN python3.8 -m pip install -U pip && \
 RUN mkdir /build /dist
 
 WORKDIR /source
+
+CMD ["/bin/bash"]
