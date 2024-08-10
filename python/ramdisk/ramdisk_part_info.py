@@ -1,14 +1,25 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
 from typing import List
+
+from regular_part.mounts.mount_info import MountInfo
 
 
 class RamdiskPartInfo:
     def __init__(self, size_in_gb: int, destination: str, order: int, fstype: str = "xfs"):
         self.size_in_gb = size_in_gb
         self.destination = destination
-        self.fstype = fstype
         self.order = order
+        self.fstype = fstype
         self.lvm_tree = None
+
+    @classmethod
+    def create_ramdisk_part_info(cls, mount_info: MountInfo, order=None) -> RamdiskPartInfo:
+        if order is None:
+            return RamdiskPartInfo(mount_info.size_gb, mount_info.dest, mount_info.get_dest_depth(), mount_info.fstype)
+        else:
+            return RamdiskPartInfo(mount_info.size_gb, mount_info.dest, order, mount_info.fstype)
 
 
 class AllRamdiskPartInfo(Sequence):

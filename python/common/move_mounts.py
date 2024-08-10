@@ -9,6 +9,6 @@ def move_mount(source, target) -> None:
     subprocess.run(MOVE_MOUNT_CMD + [source, target])
 
 
-def move_all_mounts(ramdisk_base) -> None:
+def move_system_mounts(ramdisk_base) -> None:
     for mount in COMMON_MOUNTS:
         move_mount(f"{os.path.sep}{mount}", os.path.join(ramdisk_base, mount))
