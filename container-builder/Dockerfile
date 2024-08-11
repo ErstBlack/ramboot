@@ -12,8 +12,13 @@ RUN python3.8 -m pip install -U pip && \
 	python3.8 -m pip install -U setuptools wheel && \
 	python3.8 -m pip install -U pyinstaller
 
+RUN groupadd --gid 1000 builder && \
+	useradd --uid 1000 --gid 1000 builder
+
 RUN mkdir /build /dist
 
 WORKDIR /source
+
+USER builder
 
 CMD ["/bin/bash"]
