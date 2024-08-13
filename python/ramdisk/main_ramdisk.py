@@ -2,7 +2,7 @@ import os
 import subprocess
 
 from ramdisk.ramdisk_part_info import AllRamdiskPartInfo, RamdiskPartInfo
-from regular_part.mounts.mount_info import MountInfo, AllMounts
+from mounts.mount_info import MountInfo, AllMounts
 
 RAMDISK_DEV = "/dev/ram0"
 RAMDISK_BASE = "/mnt/ramdisk-ramboot"
@@ -53,14 +53,19 @@ def create_ramdisk_partitions(physical_mounts: AllMounts) -> AllRamdiskPartInfo:
     ramdisk_partitions = []
 
     # Using enumerate, since multiple items at the same depth with different partition sizes may exist
-    for idx, mount in enumerate(physical_mounts):
+    for idx, mount in enumerate(physical_mounts, start=1):
         ramdisk_partitions.append(RamdiskPartInfo.create_ramdisk_part_info(mount, order=idx))
 
     return AllRamdiskPartInfo(ramdisk_partitions)
 
 
 def simple_ramdisk(root_mount: MountInfo) -> str:
-    part_info = AllRamdiskPartInfo([RamdiskPartInfo.create_ramdisk_part_info(root_mount)])
+    size_in_gb = root_mount.get_parent_size_gb()
+    destination = root_mount.dest
+    fstype = root_mount.fstype
+
+    part_info = AllRamdiskPartInfo(
+        [RamdiskPartInfo(size_in_gb=size_in_gb, destination=destination, order=1, fstype=fstype)])
 
     return create_ramdisk(part_info)
 

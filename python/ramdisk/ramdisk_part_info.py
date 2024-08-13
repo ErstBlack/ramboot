@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import List
 
-from regular_part.mounts.mount_info import MountInfo
+from mounts.mount_info import MountInfo
 
 
 class RamdiskPartInfo:
@@ -17,9 +17,9 @@ class RamdiskPartInfo:
     @classmethod
     def create_ramdisk_part_info(cls, mount_info: MountInfo, order=None) -> RamdiskPartInfo:
         if order is None:
-            return RamdiskPartInfo(mount_info.size_gb, mount_info.dest, mount_info.get_dest_depth(), mount_info.fstype)
+            return RamdiskPartInfo(mount_info.get_size_gb(), mount_info.dest, mount_info.get_dest_depth(), mount_info.fstype)
         else:
-            return RamdiskPartInfo(mount_info.size_gb, mount_info.dest, order, mount_info.fstype)
+            return RamdiskPartInfo(mount_info.get_size_gb(), mount_info.dest, order, mount_info.fstype)
 
 
 class AllRamdiskPartInfo(Sequence):
