@@ -1,5 +1,7 @@
 import json
 
+from lvm.lvm_info import activate_vgs
+from utils.disks import hide_disks
 from utils.fstab import get_all_mounts
 from utils.move_mounts import move_system_mounts
 from utils.pivot_root import pivot_root
@@ -10,13 +12,15 @@ from mounts.mount_info import AllMounts
 
 # TODO: Create some sort of config file in /etc/conf holding this value
 simple_ramdisk_boot = False
+hide_disks_before_boot = True
 
 
-def part_boot() -> None:
+def boot() -> None:
+    # Attempt to activate vgs
+    activate_vgs()
+
     # Get all mounts mentioned in /etc/fstab
     all_mounts = AllMounts(get_all_mounts())
-
-    mount_debug = [json.dumps(mount.__dict__) for mount in all_mounts]
 
     with open("/root/mount_info.json", "w") as f:
         for mount in all_mounts:
@@ -47,8 +51,11 @@ def part_boot() -> None:
     replace_fstab(all_mounts, ramdisk_base)
 
     # Move dev, proc, sys, and run to ramdisk
-
     move_system_mounts(ramdisk_base)
 
     # Pivot Root
     pivot_root(ramdisk_base)
+
+    # Hide block devices used for mounts
+    if hide_disks_before_boot:
+        hide_disks(all_mounts)

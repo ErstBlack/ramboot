@@ -1,10 +1,8 @@
-from boot import part_boot
-from lvm.lvm_info import activate_vgs
+from boot import boot
 
 
 def main():
-    activate_vgs()
-    part_boot()
+    boot()
 
 
 if __name__ == "__main__":

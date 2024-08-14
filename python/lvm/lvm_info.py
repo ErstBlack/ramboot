@@ -1,40 +1,61 @@
 import math
+import os.path
 import subprocess
+from typing import List
 
-CHECK_LVM_CMD = ["lsblk", "--output", "TYPE", "--noheadings"]
-GET_VG_CMD = ["/sbin/lvs", "--noheadings", "--options", "vg_name"]
-GET_PV_CMD = ["/sbin/vgs", "--noheadings", "--options", "pv_name"]
-GET_LV_SIZE_CMD = ["/sbin/lvs", "--noheadings", "--options", "lv_size", "--units", "g", "--nosuffix"]
 
-LVM_TYPES = {"lvm", "lvm2"}
+def check_output_wrapper(cmd: List[str]) -> str:
+    return subprocess.check_output(cmd).decode("utf-8").strip()
+
 
 def check_if_lvm(device: str) -> bool:
-    output = subprocess.check_output(CHECK_LVM_CMD + [device]).decode("utf-8").strip().lower()
+    check_lvm_cmd = ["lsblk", "--output", "TYPE", "--noheadings"]
+    lvm_types = {"lvm", "lvm2"}
 
-    return output in LVM_TYPES
+    output = check_output_wrapper(check_lvm_cmd + [device]).lower()
+
+    return output in lvm_types
 
 
 def get_lvm_vg(device: str) -> str:
-    return subprocess.check_output(GET_VG_CMD + [device]).decode("utf-8").strip()
+    get_vg_cmd = ["/sbin/lvs", "--noheadings", "--options", "vg_name"]
+
+    return check_output_wrapper(get_vg_cmd + [device])
 
 
 def get_lvm_partition(device: str) -> str:
-    vg = get_lvm_vg(device)
+    get_pv_cmd = ["/sbin/vgs", "--noheadings", "--options", "pv_name"]
 
-    return subprocess.check_output(GET_PV_CMD + [vg]).decode("utf-8").strip()
+    vg = get_lvm_vg(device)
+    return check_output_wrapper(get_pv_cmd + [vg])
 
 
 def get_lvm_size(device: str) -> int:
-    return math.ceil(float(subprocess.check_output(GET_LV_SIZE_CMD + [device]).decode("utf-8").strip()))
+    get_lv_size_cmd = ["/sbin/lvs", "--noheadings", "--options", "lv_size", "--units", "g", "--nosuffix"]
+
+    return math.ceil(float(check_output_wrapper(get_lv_size_cmd + [device])))
 
 
-def activate_vgs():
+def get_lvm_map(device: str) -> str:
+    readlink_cmd = ["readlink", "--canonicalize"]
+    name_prefix = "/sys/class/block"
+    name_suffix = "dm/name"
+
+    dm_name = check_output_wrapper(readlink_cmd + [device])
+    name_path = os.path.join(name_prefix, os.path.basename(dm_name), name_suffix)
+
+    if os.path.exists(name_path):
+        with open(name_path, "r") as f:
+            name = f.readline().strip()
+            return os.path.join("/dev/mapper", name)
+
+
+def activate_vgs() -> None:
     activate_cmd = ["/sbin/vgchange", "-a", "y"]
     mknode_cmd = ["/sbin/vgscan", "--mknodes"]
 
-    subprocess.run(activate_cmd)
-    subprocess.run(mknode_cmd)
-
-def deactivate_vgs():
-    # TODO: Best option might be to loop over /sbin/dmsetup ls, clean up lvms, then check vg and pv?
-    pass
+    try:
+        subprocess.run(activate_cmd)
+        subprocess.run(mknode_cmd)
+    except FileNotFoundError:
+        pass

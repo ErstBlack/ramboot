@@ -6,7 +6,7 @@ from subprocess import check_output
 from typing import List
 from collections.abc import Sequence
 
-from lvm.lvm_info import check_if_lvm, get_lvm_partition, get_lvm_size
+from lvm.lvm_info import check_if_lvm, get_lvm_partition, get_lvm_size, get_lvm_map
 
 
 class MountInfo:
@@ -167,6 +167,10 @@ class MountInfo:
             str: The updated source path.
         """
         if os.path.exists(self.source):
+            # If we're an lvm, get the mapper name as it's immensely more useful
+            if self.get_is_lvm():
+                return get_lvm_map(self.source)
+
             return self.source
 
         if self.get_uuid() is not None:
@@ -279,6 +283,7 @@ class MountInfo:
 
 class AllMounts(Sequence):
     """Represents a collection of MountInfo objects, typically all mounts in a system."""
+
     def __init__(self, mount_list: List[MountInfo]):
         """Initialize an AllMounts object with a list of MountInfo objects.
 
