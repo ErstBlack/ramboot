@@ -58,12 +58,32 @@ class MountInfo:
         # Checking if source can be better mapped to a device
         self.source = self.update_source()
 
+        # Figure out if we're on an lvm
+        self._is_lvm = self.is_lvm()
+
+        # Check source again if we're on an lvm
+        if self._is_lvm:
+            self.source = self.update_lvm_source()
+
         # Continue figuring out values
-        self._is_lvm = self.get_is_lvm()
         self._partition = self.get_partition()
         self._size_gb = self.get_size_gb()
         self._parent_disk = self.get_parent_disk()
         self._parent_size_gb = self.get_parent_size_gb()
+
+    def __eq__(self, other: MountInfo) -> bool:
+        """Determine if two MountInfo objects represent the same mount.
+
+        Args:
+            other (MountInfo): Another MountInfo to compare equality to.
+
+        Returns:
+            bool: True if the MountInfo objects represent the same mount, False otherwise.
+        """
+        if self.dest == other.dest:
+            return True
+
+        return False
 
     @classmethod
     def create_mount_info(cls, fstab_line: str) -> MountInfo:
@@ -104,7 +124,7 @@ class MountInfo:
         """
         return self._partition is not None and self.fstype not in MountInfo.SOFT_FSTYPES
 
-    def get_is_lvm(self) -> bool:
+    def is_lvm(self) -> bool:
         """Check if this is an LVM mount.
 
         Returns:
@@ -166,13 +186,6 @@ class MountInfo:
         Returns:
             str: The updated source path.
         """
-        if os.path.exists(self.source):
-            # If we're an lvm, get the mapper name as it's immensely more useful
-            if self.get_is_lvm():
-                return get_lvm_map(self.source)
-
-            return self.source
-
         if self.get_uuid() is not None:
             return os.path.join("/dev/disk/by-uuid", self.get_uuid())
 
@@ -181,6 +194,20 @@ class MountInfo:
 
         if self.get_label() is not None:
             return os.path.join("/dev/disk/by-label", self.get_label())
+
+        return self.source
+
+    def update_lvm_source(self):
+        """Update the source to a better device mapping if we are an lvm.
+
+        Returns:
+            str: The updated source path.
+        """
+        if os.path.exists(self.source):
+            # If we're an lvm, get the mapper name as it's immensely more useful
+            return get_lvm_map(self.source)
+
+        return self.source
 
     def get_partition(self) -> str | None:
         """Get the partition information for this mount.
@@ -191,7 +218,7 @@ class MountInfo:
         if self._partition is not None:
             return self._partition
 
-        if self.get_is_lvm():
+        if self.is_lvm():
             return get_lvm_partition(self.source)
 
         # If any of these aren't None, we should have a good place to check for the partition
@@ -243,7 +270,7 @@ class MountInfo:
         if self._size_gb is not None:
             return self._size_gb
 
-        if self.get_is_lvm():
+        if self.is_lvm():
             return get_lvm_size(self.source)
 
         if self._partition is not None:
@@ -291,7 +318,16 @@ class AllMounts(Sequence):
             mount_list (List[MountInfo]): A list of MountInfo objects.
         """
 
-        self.mount_list: List[MountInfo] = mount_list
+        # Initialize List
+        self.mount_list = []
+
+        # Make sure root gets in
+        self.mount_list.append(next(mount for mount in mount_list if mount.is_root()))
+
+        # Remove duplicates on creation using equality check
+        for mount in mount_list:
+            if mount not in self.mount_list:
+                self.mount_list.append(mount)
 
         # Sort by depth on creation
         self._sort_by_depth()

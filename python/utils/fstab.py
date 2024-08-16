@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from mounts.mount_info import MountInfo, AllMounts
 
@@ -26,6 +27,13 @@ def get_all_mounts() -> List[MountInfo]:
     mount_points = [MountInfo.create_mount_info(line) for line in fstab]
 
     return mount_points
+
+def get_all_mounts_fast() -> List[MountInfo]:
+    fstab = get_fstab()
+    with ThreadPoolExecutor() as pool:
+        mount_points = pool.map(MountInfo.create_mount_info, fstab)
+
+    return list(mount_points)
 
 
 def replace_fstab(all_mounts: AllMounts, ramdisk_base: str) -> None:

@@ -15,8 +15,13 @@ def copy_mount(mount: MountInfo, ramdisk_base: str) -> None:
     # Create Source Mount Point
     temp_mount_point = tempfile.mkdtemp()
 
-    # Mount Source
-    subprocess.run(["mount", mount.source, temp_mount_point])
+    # If we have a btrfs, we need to handle it a bit specially
+    if mount.fstype == "btrfs":
+        subprocess.run(["mount", mount.source, "--options", ",".join(mount.fsopts), temp_mount_point])
+
+    # Otherwise, mount normally
+    else:
+        subprocess.run(["mount", mount.source, temp_mount_point])
 
     # Copy from temp mount to ramdisk point
     # cp behaves weirdly when you copy to an existing directory, adding /. to the end gives us the behavior we want

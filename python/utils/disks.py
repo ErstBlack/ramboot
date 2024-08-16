@@ -4,6 +4,11 @@ from mounts.mount_info import AllMounts
 
 
 def hide_disks(all_mounts: AllMounts) -> None:
+    # TODO: See if there's a way to handle this nicely for regular root partition.
+    # Maybe create a baby ramdisk only to hold the ramboot.sh?
+    if not all_mounts.get_root_mount().is_lvm():
+        return
+
     path_prefix = "/sys/block"
     path_suffix = "device/delete"
     # Get all disks, e.g. sda, sdb, etc.

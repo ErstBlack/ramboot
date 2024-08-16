@@ -18,25 +18,29 @@ def check_if_lvm(device: str) -> bool:
 
 
 def get_lvm_vg(device: str) -> str:
-    get_vg_cmd = ["/sbin/lvs", "--noheadings", "--options", "vg_name"]
+    get_vg_cmd = ["/usr/sbin/lvs", "--noheadings", "--options", "vg_name"]
 
     return check_output_wrapper(get_vg_cmd + [device])
 
 
 def get_lvm_partition(device: str) -> str:
-    get_pv_cmd = ["/sbin/vgs", "--noheadings", "--options", "pv_name"]
+    get_pv_cmd = ["/usr/sbin/vgs", "--noheadings", "--options", "pv_name"]
 
     vg = get_lvm_vg(device)
     return check_output_wrapper(get_pv_cmd + [vg])
 
 
 def get_lvm_size(device: str) -> int:
-    get_lv_size_cmd = ["/sbin/lvs", "--noheadings", "--options", "lv_size", "--units", "g", "--nosuffix"]
+    get_lv_size_cmd = ["/usr/sbin/lvs", "--noheadings", "--options", "lv_size", "--units", "g", "--nosuffix"]
 
     return math.ceil(float(check_output_wrapper(get_lv_size_cmd + [device])))
 
 
 def get_lvm_map(device: str) -> str:
+    # Quick exit if we're already here
+    if os.path.dirname(device) == "/dev/mapper":
+        return device
+
     readlink_cmd = ["readlink", "--canonicalize"]
     name_prefix = "/sys/class/block"
     name_suffix = "dm/name"
@@ -48,14 +52,3 @@ def get_lvm_map(device: str) -> str:
         with open(name_path, "r") as f:
             name = f.readline().strip()
             return os.path.join("/dev/mapper", name)
-
-
-def activate_vgs() -> None:
-    activate_cmd = ["/sbin/vgchange", "-a", "y"]
-    mknode_cmd = ["/sbin/vgscan", "--mknodes"]
-
-    try:
-        subprocess.run(activate_cmd)
-        subprocess.run(mknode_cmd)
-    except FileNotFoundError:
-        pass

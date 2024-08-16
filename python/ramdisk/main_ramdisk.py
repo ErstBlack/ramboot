@@ -10,15 +10,14 @@ RAMDISK_BASE = "/mnt/ramdisk-ramboot"
 
 def modprobe_ramdisk(size_in_gb: int, num_partitions: int) -> None:
     # Create the Ramdisk, specifying the number of partitions and the total size
-    modprobe_cmd = ["/sbin/modprobe", "brd", "rd_nr=1", f"max_part={num_partitions}",
+    modprobe_cmd = ["/usr/sbin/modprobe", "brd", "rd_nr=1", f"max_part={num_partitions}",
                     f"rd_size={1024 * 1024 * size_in_gb}"]
 
-    print(f"MODPROBE CMD: {modprobe_cmd}")
     subprocess.run(modprobe_cmd)
 
 
 def partition_ramdisk(all_ramdisk_partitions: AllRamdiskPartInfo) -> None:
-    sgdisk_cmd = ["/sbin/sgdisk", "--zap-all"]
+    sgdisk_cmd = ["/usr/sbin/sgdisk", "--zap-all"]
 
     for part_info in all_ramdisk_partitions:
         # Build command one partition at a time
@@ -34,7 +33,7 @@ def partition_ramdisk(all_ramdisk_partitions: AllRamdiskPartInfo) -> None:
 
 def format_partitions(all_ramdisk_partitions: AllRamdiskPartInfo) -> None:
     for part_info in all_ramdisk_partitions:
-        subprocess.run([f"/sbin/mkfs.{part_info.fstype}", f"{RAMDISK_DEV}p{part_info.order}"])
+        subprocess.run([f"/usr/sbin/mkfs.{part_info.fstype}", f"{RAMDISK_DEV}p{part_info.order}"])
 
 
 def mount_partitions(all_ramdisk_partitions: AllRamdiskPartInfo) -> None:
@@ -67,10 +66,10 @@ def simple_ramdisk(root_mount: MountInfo) -> str:
     part_info = AllRamdiskPartInfo(
         [RamdiskPartInfo(size_in_gb=size_in_gb, destination=destination, order=1, fstype=fstype)])
 
-    return create_ramdisk(part_info)
+    return create_ramdisk_worker(part_info)
 
 
-def create_ramdisk(all_ramdisk_partitions: AllRamdiskPartInfo) -> str:
+def create_ramdisk_worker(all_ramdisk_partitions: AllRamdiskPartInfo) -> str:
     # Figure out the total size of the disk
     total_ramdisk_size = sum(part_info.size_in_gb for part_info in all_ramdisk_partitions)
 
@@ -91,3 +90,18 @@ def create_ramdisk(all_ramdisk_partitions: AllRamdiskPartInfo) -> str:
     mount_partitions(all_ramdisk_partitions)
 
     return RAMDISK_BASE
+
+
+def create_ramdisk(physical_mounts: AllMounts, simple_ramdisk_boot=True) -> str:
+    # Get Root for quick exit check
+    root_mount = physical_mounts.get_root_mount()
+
+    # Check if single partition is requested or fstype is btrfs
+    # btrfs has subvolumes which act weirdly, easier to assume a single partition
+    if simple_ramdisk_boot or root_mount.fstype == "btrfs":
+        return simple_ramdisk(physical_mounts.get_root_mount())
+
+    # Otherwise, keep going with more complex partitioning
+    else:
+        all_ramdisk_partitions = create_ramdisk_partitions(physical_mounts)
+        return create_ramdisk_worker(all_ramdisk_partitions)
