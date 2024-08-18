@@ -37,7 +37,7 @@ def copy_mount(mount: MountInfo, ramdisk_base: str) -> None:
 
 def copy_root_mount(ramdisk_base: str) -> None:
     # Copy from temp mount to ramdisk point
-    subprocess.run(COPY_CMD + ["/", ramdisk_base])
+    subprocess.run(COPY_CMD + ["/.", ramdisk_base])
 
 
 def copy_all_mounts(all_mounts: AllMounts, ramdisk_base: str) -> None:

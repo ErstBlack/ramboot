@@ -125,7 +125,7 @@ class MountInfo:
         Returns:
             bool: True if this is a physical mount, False otherwise.
         """
-        return self.fstype not in MountInfo.SOFT_FSTYPES | MountInfo.REMOTE_FSTYPES and not self.is_root()
+        return self.fstype not in MountInfo.SOFT_FSTYPES | MountInfo.REMOTE_FSTYPES or self.is_root()
 
     def is_lvm(self) -> bool:
         """Check if this is an LVM mount.
