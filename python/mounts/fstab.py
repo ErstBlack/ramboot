@@ -7,7 +7,7 @@ FSTAB_FILE = "/etc/fstab"
 
 
 def read_fstab(fstab_file: str) -> List[str]:
-    with open(FSTAB_FILE, "r") as f:
+    with open(fstab_file, "r") as f:
         return f.readlines()
 
 
@@ -18,18 +18,18 @@ def cleanup_fstab(fstab_lines: List[str]):
     return list(clean_lines)
 
 
-def get_fstab(fstab_file=FSTAB_FILE) -> List[str]:
+def get_fstab(fstab_file: str) -> List[str]:
     return cleanup_fstab(read_fstab(fstab_file))
 
 
-def get_all_mounts() -> List[MountInfo]:
-    fstab = get_fstab()
+def get_mounts() -> List[MountInfo]:
+    fstab = get_fstab(FSTAB_FILE)
     mount_points = [MountInfo.create_mount_info(line) for line in fstab]
 
     return mount_points
 
 def get_all_mounts_fast() -> List[MountInfo]:
-    fstab = get_fstab()
+    fstab = get_fstab(FSTAB_FILE)
     with ThreadPoolExecutor() as pool:
         mount_points = pool.map(MountInfo.create_mount_info, fstab)
 

@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import math
 import os
+import subprocess
 from subprocess import check_output
 from typing import List
 from collections.abc import Sequence
 
 from lvm.lvm_info import check_if_lvm, get_lvm_partition, get_lvm_size, get_lvm_map
+from raid.raid_info import check_if_raid
 
 
 class MountInfo:
@@ -14,7 +16,7 @@ class MountInfo:
         Represents information about a mount point from an fstab entry.
     """
     # Need to create a more comprehensive list
-    REMOTE_FSTYPES = {"nfs", "nfs4", "cifs"}
+    REMOTE_FSTYPES = {"nfs", "nfs4", "cifs", "fuse.s3fs", "fuse.ceph"}
     SOFT_FSTYPES = {"swap", "tmpfs", "ramfs"}
 
     READLINK_CMD = ["readlink", "--canonicalize"]
@@ -42,6 +44,7 @@ class MountInfo:
 
         # Derived values
         self._is_lvm = None
+        self._is_raid = None
         self._uuid = None
         self._part_uuid = None
         self._label = None
@@ -60,10 +63,10 @@ class MountInfo:
 
         # Figure out if we're on an lvm
         self._is_lvm = self.is_lvm()
+        self._is_raid = self.is_raid()
 
         # Check source again if we're on an lvm
-        if self._is_lvm:
-            self.source = self.update_lvm_source()
+        self.source = self.update_lvm_source()
 
         # Continue figuring out values
         self._partition = self.get_partition()
@@ -122,7 +125,7 @@ class MountInfo:
         Returns:
             bool: True if this is a physical mount, False otherwise.
         """
-        return self._partition is not None and self.fstype not in MountInfo.SOFT_FSTYPES
+        return self.fstype not in MountInfo.SOFT_FSTYPES | MountInfo.REMOTE_FSTYPES and not self.is_root()
 
     def is_lvm(self) -> bool:
         """Check if this is an LVM mount.
@@ -133,7 +136,24 @@ class MountInfo:
         if self._is_lvm is not None:
             return self._is_lvm
 
+        if not self.is_physical() or self.is_remote():
+            return False
+
         return check_if_lvm(self.source)
+
+    def is_raid(self):
+        """Check if this is a RAID mount.
+
+        Returns:
+            bool: True if this is a RAID mount, False otherwise.
+        """
+        if self._is_raid:
+            return self._is_raid
+
+        if not self.is_physical() or self.is_remote():
+            return False
+
+        return check_if_raid(self.source)
 
     def get_uuid(self) -> str | None:
         """Get the UUID of the mount.
@@ -203,7 +223,7 @@ class MountInfo:
         Returns:
             str: The updated source path.
         """
-        if os.path.exists(self.source):
+        if self.is_lvm() and os.path.exists(self.source):
             # If we're an lvm, get the mapper name as it's immensely more useful
             return get_lvm_map(self.source)
 
@@ -221,6 +241,12 @@ class MountInfo:
         if self.is_lvm():
             return get_lvm_partition(self.source)
 
+        if self.is_raid():
+            return self.source
+
+        if not self.is_physical() or self.is_remote():
+            return None
+
         # If any of these aren't None, we should have a good place to check for the partition
         if any(val is not None for val in (self._uuid, self._part_uuid, self._label)):
             return check_output(MountInfo.READLINK_CMD + [self.source]).decode("utf-8").strip()
@@ -236,6 +262,9 @@ class MountInfo:
         """
         if self._parent_disk is not None:
             return self._parent_disk
+
+        if self.is_raid():
+            return self.source
 
         if self._partition is not None:
             partition_base = os.path.basename(self._partition)
@@ -255,8 +284,15 @@ class MountInfo:
         if self._parent_size_gb is not None:
             return self._parent_size_gb
 
+        if self.is_raid():
+            return self.get_size_gb()
+
         if self._parent_disk is not None:
-            size_in_bytes = check_output(MountInfo.SIZE_CMD + [self._parent_disk]).decode("utf-8").strip()
+            try:
+                size_in_bytes = check_output(MountInfo.SIZE_CMD + [self._parent_disk]).decode("utf-8").strip()
+            except subprocess.CalledProcessError as e:
+                print(self.__dict__)
+                raise e
 
             # Convert from bytes to GB
             return math.ceil(float(size_in_bytes) / 1024 ** 3)

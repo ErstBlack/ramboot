@@ -1,18 +1,18 @@
 import math
 import os.path
 import subprocess
-from typing import List
 
-
-def check_output_wrapper(cmd: List[str]) -> str:
-    return subprocess.check_output(cmd).decode("utf-8").strip()
+from utils.shell_commands import check_output_wrapper
 
 
 def check_if_lvm(device: str) -> bool:
     check_lvm_cmd = ["lsblk", "--output", "TYPE", "--noheadings"]
     lvm_types = {"lvm", "lvm2"}
 
-    output = check_output_wrapper(check_lvm_cmd + [device]).lower()
+    try:
+        output = check_output_wrapper(check_lvm_cmd + [device]).lower()
+    except subprocess.CalledProcessError:
+        return False
 
     return output in lvm_types
 
