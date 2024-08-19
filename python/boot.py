@@ -6,11 +6,6 @@ from utils.pivot_root import pivot_root
 from ramdisk.main_ramdisk import create_ramdisk
 from utils.copy_mounts import copy_all_mounts
 from mounts.fstab import replace_fstab
-from mounts.mount_info import AllMounts
-
-# TODO: Create some sort of config file in /etc/conf holding this value
-SIMPLE_RAMDISK_BOOT = False
-HIDE_DISKS_BEFORE_BOOT = True
 
 
 def boot() -> None:
@@ -18,13 +13,13 @@ def boot() -> None:
     initial_activations()
 
     # Get all mounts mentioned in /etc/fstab
-    all_mounts = AllMounts(get_all_mounts())
+    all_mounts = get_all_mounts()
 
     # Filter down to physical mounts
     physical_mounts = all_mounts.get_physical_mounts()
 
     # Create the ramdisk
-    ramdisk_base = create_ramdisk(physical_mounts, SIMPLE_RAMDISK_BOOT)
+    ramdisk_base = create_ramdisk(physical_mounts)
 
     # Copy mounts to the ramdisk
     copy_all_mounts(physical_mounts, ramdisk_base)
@@ -39,5 +34,4 @@ def boot() -> None:
     pivot_root(ramdisk_base)
 
     # Hide block devices used for mounts
-    if HIDE_DISKS_BEFORE_BOOT:
-        hide_disks(all_mounts)
+    hide_disks(all_mounts)

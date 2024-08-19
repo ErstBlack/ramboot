@@ -35,23 +35,28 @@ class MountInfo:
         """
 
         # Base values from fstab
-        self.source = source
-        self.dest = dest
-        self.fstype = fstype
-        self.fsopts = fsopts
-        self.dump = dump
-        self.fsck = fsck
+        self.source: str = source
+        self.dest: str = dest
+        self.fstype: str = fstype
+        self.fsopts: List[str] = fsopts
+        self.dump: str = dump
+        self.fsck: str = fsck
+        self._initialized: bool = False
 
         # Derived values
-        self._is_lvm = None
-        self._is_raid = None
-        self._uuid = None
-        self._part_uuid = None
-        self._label = None
-        self._partition = None
-        self._size_gb = None
-        self._parent_disk = None
-        self._parent_size_gb = None
+        self._is_lvm: bool | None = None
+        self._is_raid: bool | None = None
+        self._uuid: str | None = None
+        self._part_uuid: str | None = None
+        self._label: str | None = None
+        self._partition: str | None = None
+        self._size_gb: int | None = None
+        self._parent_disk: str | None = None
+        self._parent_size_gb: int | None = None
+
+    def initialize(self):
+        if self._initialized:
+            return
 
         # Figure out some values
         self._uuid = self.get_uuid()
@@ -73,6 +78,9 @@ class MountInfo:
         self._size_gb = self.get_size_gb()
         self._parent_disk = self.get_parent_disk()
         self._parent_size_gb = self.get_parent_size_gb()
+
+        # Setting initialized flag
+        self._initialized = True
 
     def __eq__(self, other: MountInfo) -> bool:
         """Determine if two MountInfo objects represent the same mount.
@@ -364,6 +372,9 @@ class AllMounts(Sequence):
         for mount in mount_list:
             if mount not in self.mount_list:
                 self.mount_list.append(mount)
+
+        for mount in self.mount_list:
+            mount.initialize()
 
         # Sort by depth on creation
         self._sort_by_depth()

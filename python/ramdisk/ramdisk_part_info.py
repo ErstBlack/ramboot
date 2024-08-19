@@ -12,14 +12,10 @@ class RamdiskPartInfo:
         self.destination = destination
         self.order = order
         self.fstype = fstype
-        self.lvm_tree = None
 
     @classmethod
-    def create_ramdisk_part_info(cls, mount_info: MountInfo, order=None) -> RamdiskPartInfo:
-        if order is None:
-            return RamdiskPartInfo(mount_info.get_size_gb(), mount_info.dest, mount_info.get_dest_depth(), mount_info.fstype)
-        else:
-            return RamdiskPartInfo(mount_info.get_size_gb(), mount_info.dest, order, mount_info.fstype)
+    def create_ramdisk_part_info(cls, mount_info: MountInfo, order: int) -> RamdiskPartInfo:
+        return RamdiskPartInfo(mount_info.get_size_gb(), mount_info.dest, order, mount_info.fstype)
 
 
 class AllRamdiskPartInfo(Sequence):
@@ -39,6 +35,3 @@ class AllRamdiskPartInfo(Sequence):
 
     def _sort_by_order(self):
         self.ramdisk_part_infos = sorted(self.ramdisk_part_infos, key=lambda part_info: part_info.order)
-
-    def contains_lvm(self):
-        return any(part_info.lvm_tree is not None for part_info in self.ramdisk_part_infos)

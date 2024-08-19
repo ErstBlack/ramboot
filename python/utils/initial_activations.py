@@ -3,6 +3,8 @@ import subprocess
 from glob import glob
 from typing import List
 
+from utils.rambootconfig import RambootConfig
+
 
 def run_commands(*args: List[str]) -> None:
     for arg in args:
@@ -52,7 +54,11 @@ def assemble_md() -> None:
 
 
 def initial_activations() -> None:
-    assemble_md()
-    import_zpools()
-    scan_btrfs()
-    activate_vgs()
+    if RambootConfig.get_activate_field("raid"):
+        assemble_md()
+    if RambootConfig.get_activate_field("zfs"):
+        import_zpools()
+    if RambootConfig.get_activate_field("btrfs"):
+        scan_btrfs()
+    if RambootConfig.get_activate_field("lvm"):
+        activate_vgs()

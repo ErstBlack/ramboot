@@ -1,9 +1,14 @@
 import os.path
 
 from mounts.mount_info import AllMounts
+from utils.rambootconfig import RambootConfig
 
 
 def hide_disks(all_mounts: AllMounts) -> None:
+    # Quick exit check
+    if RambootConfig.get_hide_disks():
+        return
+
     # TODO: See if there's a way to handle this nicely for regular root partition.
     # Maybe create a baby ramdisk only to hold the ramboot.sh?
     if not all_mounts.get_root_mount().is_lvm():

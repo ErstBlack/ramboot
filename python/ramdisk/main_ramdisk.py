@@ -2,7 +2,8 @@ import os
 import subprocess
 
 from ramdisk.ramdisk_part_info import AllRamdiskPartInfo, RamdiskPartInfo
-from mounts.mount_info import AllMounts
+from mounts.mount_info import AllMounts, MountInfo
+from utils.rambootconfig import RambootConfig
 
 RAMDISK_DEV = "/dev/ram0"
 RAMDISK_BASE = "/mnt/ramdisk-ramboot"
@@ -88,21 +89,40 @@ def create_ramdisk_worker(all_ramdisk_partitions: AllRamdiskPartInfo) -> str:
     return RAMDISK_BASE
 
 
-def create_ramdisk(physical_mounts: AllMounts, simple_ramdisk_boot=True) -> str:
+def get_simple_ramdisk_size(root_mount: MountInfo, physical_mounts: AllMounts):
+    config_size = RambootConfig.get_simple_ramdisk_size_gb()
+
+    if config_size is not None:
+        return config_size
+
+    if any(mount.is_raid() for mount in physical_mounts):
+        return sum(mount.get_size_gb() for mount in physical_mounts)
+
+    return root_mount.get_parent_size_gb()
+
+
+def get_simple_ramdisk_fstype(root_mount: MountInfo):
+    config_fstype = RambootConfig.get_simple_ramdisk_fstype()
+
+    if config_fstype is not None:
+        return config_fstype
+
+    return root_mount.fstype
+
+
+def create_ramdisk(physical_mounts: AllMounts) -> str:
     # Get Root for quick checks
     root_mount = physical_mounts.get_root_mount()
 
     # Check if single partition is requested or fstype is btrfs
     # btrfs has subvolumes which act weirdly, easier to assume a single partition
-    if simple_ramdisk_boot or root_mount.fstype == "btrfs":
+    if RambootConfig.get_use_simple_ramdisk() or root_mount.fstype == "btrfs":
 
-        # If we have a raid, we need to sum up the total partitions
-        if any(mount.is_raid() for mount in physical_mounts):
-            ramdisk_size = sum(mount.get_size_gb() for mount in physical_mounts)
-            simple_ramdisk(ramdisk_size, root_mount.fstype)
+        ramdisk_size = get_simple_ramdisk_size(root_mount, physical_mounts)
+        ramdisk_fstype = get_simple_ramdisk_fstype(root_mount)
 
         # Otherwise we can get it from the size of the disk that root is on
-        return simple_ramdisk(root_mount.get_parent_size_gb(), root_mount.fstype)
+        return simple_ramdisk(ramdisk_size, ramdisk_fstype)
 
     # Otherwise, keep going with more complex partitioning
     else:
