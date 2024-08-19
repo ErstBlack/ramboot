@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import math
 import os
-import subprocess
-from subprocess import check_output
 from typing import List
 from collections.abc import Sequence
 
 from lvm.lvm_info import check_if_lvm, get_lvm_partition, get_lvm_size, get_lvm_map
 from raid.raid_info import check_if_raid
+from utils.shell_commands import check_output_wrapper
 
 
 class MountInfo:
@@ -257,7 +256,7 @@ class MountInfo:
 
         # If any of these aren't None, we should have a good place to check for the partition
         if any(val is not None for val in (self._uuid, self._part_uuid, self._label)):
-            return check_output(MountInfo.READLINK_CMD + [self.source]).decode("utf-8").strip()
+            return check_output_wrapper(MountInfo.READLINK_CMD + [self.source])
 
         if self.source.startswith("/dev"):
             return self.source
@@ -278,8 +277,7 @@ class MountInfo:
             partition_base = os.path.basename(self._partition)
 
             # Symlink points to the parent of the partition
-            parent_full = check_output(
-                MountInfo.READLINK_CMD + [f"/sys/class/block/{partition_base}/.."]).decode("utf-8").strip()
+            parent_full = check_output_wrapper(MountInfo.READLINK_CMD + [f"/sys/class/block/{partition_base}/.."])
 
             return f"/dev/{os.path.basename(parent_full)}"
 
@@ -296,11 +294,7 @@ class MountInfo:
             return self.get_size_gb()
 
         if self._parent_disk is not None:
-            try:
-                size_in_bytes = check_output(MountInfo.SIZE_CMD + [self._parent_disk]).decode("utf-8").strip()
-            except subprocess.CalledProcessError as e:
-                print(self.__dict__)
-                raise e
+            size_in_bytes = check_output_wrapper(MountInfo.SIZE_CMD + [self._parent_disk])
 
             # Convert from bytes to GB
             return math.ceil(float(size_in_bytes) / 1024 ** 3)
@@ -318,7 +312,7 @@ class MountInfo:
             return get_lvm_size(self.source)
 
         if self._partition is not None:
-            size_in_bytes = check_output(MountInfo.SIZE_CMD + [self._partition]).decode("utf-8").strip()
+            size_in_bytes = check_output_wrapper(MountInfo.SIZE_CMD + [self._partition])
 
             # Convert from bytes to GB
             return math.ceil(float(size_in_bytes) / 1024 ** 3)

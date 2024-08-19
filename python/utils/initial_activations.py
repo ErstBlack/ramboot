@@ -3,7 +3,7 @@ import subprocess
 from glob import glob
 from typing import List
 
-from utils.rambootconfig import RambootConfig
+from utils.ramboot_config import RambootConfig
 
 
 def run_commands(*args: List[str]) -> None:

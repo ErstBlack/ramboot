@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from mounts.mount_info import MountInfo, AllMounts
 from mounts.mounts import check_for_ignored_mounts
-from utils.rambootconfig import RambootConfig
+from utils.ramboot_config import RambootConfig
 
 
 def read_fstab(fstab_file: str) -> List[str]:

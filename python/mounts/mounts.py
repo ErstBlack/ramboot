@@ -1,8 +1,8 @@
 from typing import List
 
-from mounts.fstab import get_mounts
+from mounts import fstab, zfs
 from mounts.mount_info import MountInfo, AllMounts
-from utils.rambootconfig import RambootConfig
+from utils.ramboot_config import RambootConfig
 
 
 def check_for_ignored_mounts(mounts: List[MountInfo]) -> List[MountInfo]:
@@ -11,8 +11,8 @@ def check_for_ignored_mounts(mounts: List[MountInfo]) -> List[MountInfo]:
 
 
 def get_all_mounts() -> AllMounts:
-    fstab_mounts = get_mounts()
+    fstab_mounts = fstab.get_mounts()
+    zfs_mounts = zfs.get_mounts()
 
     # TODO: Include ZFS
-
-    return AllMounts(fstab_mounts)
+    return AllMounts(fstab_mounts + zfs_mounts)

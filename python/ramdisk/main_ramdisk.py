@@ -3,7 +3,7 @@ import subprocess
 
 from ramdisk.ramdisk_part_info import AllRamdiskPartInfo, RamdiskPartInfo
 from mounts.mount_info import AllMounts, MountInfo
-from utils.rambootconfig import RambootConfig
+from utils.ramboot_config import RambootConfig
 
 RAMDISK_DEV = "/dev/ram0"
 RAMDISK_BASE = "/mnt/ramdisk-ramboot"
@@ -89,6 +89,7 @@ def create_ramdisk_worker(all_ramdisk_partitions: AllRamdiskPartInfo) -> str:
     return RAMDISK_BASE
 
 
+# TODO: Get total parent size between all physical mounts, make sure to exclude duplicates
 def get_simple_ramdisk_size(root_mount: MountInfo, physical_mounts: AllMounts):
     config_size = RambootConfig.get_simple_ramdisk_size_gb()
 
@@ -116,7 +117,8 @@ def create_ramdisk(physical_mounts: AllMounts) -> str:
 
     # Check if single partition is requested or fstype is btrfs
     # btrfs has subvolumes which act weirdly, easier to assume a single partition
-    if RambootConfig.get_use_simple_ramdisk() or root_mount.fstype == "btrfs":
+    # zfs uses volumes as well, easier to assume a single partition
+    if RambootConfig.get_use_simple_ramdisk() or root_mount.fstype in {"zfs", "btrfs"}:
 
         ramdisk_size = get_simple_ramdisk_size(root_mount, physical_mounts)
         ramdisk_fstype = get_simple_ramdisk_fstype(root_mount)

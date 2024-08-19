@@ -1,7 +1,7 @@
 import os.path
 
 from mounts.mount_info import AllMounts
-from utils.rambootconfig import RambootConfig
+from utils.ramboot_config import RambootConfig
 
 
 def hide_disks(all_mounts: AllMounts) -> None:
