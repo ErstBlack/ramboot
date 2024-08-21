@@ -154,7 +154,7 @@ class MountInfo:
         Returns:
             bool: True if this is a RAID mount, False otherwise.
         """
-        if self._is_raid:
+        if self._is_raid is not None:
             return self._is_raid
 
         if not self.is_physical() or self.is_remote():

@@ -1,11 +1,33 @@
 import os.path
 
+from glob import glob
 from mounts.mount_info import AllMounts
 from utils.ramboot_config import RambootConfig
 
 
+def hide_zpools(all_mounts):
+    if all_mounts.get_root_mount().fstype != "zfs":
+        return
+
+    cache_file = "/etc/zfs/zpool.cache"
+
+    if os.path.exists(cache_file) and os.path.isfile(cache_file):
+        os.remove(cache_file)
+
+    list_dir = "/etc/zfs/zfs-list.cache"
+    list_cache_files = glob(os.path.join(list_dir, "*"))
+
+    for f in list_cache_files:
+        if os.path.exists(f) and os.path.isfile(f):
+            os.remove(f)
+
+
 def hide_disks(all_mounts: AllMounts) -> None:
-    # Quick exit check
+    hide_zpools(all_mounts)
+    hide_block_devices(all_mounts)
+
+
+def hide_block_devices(all_mounts: AllMounts):
     if RambootConfig.get_hide_disks():
         return
 
@@ -17,7 +39,7 @@ def hide_disks(all_mounts: AllMounts) -> None:
     path_prefix = "/sys/block"
     path_suffix = "device/delete"
     # Get all disks, e.g. sda, sdb, etc.
-    disks = {os.path.basename(mount.get_parent_disk()) for mount in all_mounts if mount.get_parent_disk()}
+    disks = {os.path.basename(mount.get_parent_disk()) for mount in all_mounts if mount.get_parent_disk() is not None}
 
     for disk in disks:
         delete_path = os.path.join(path_prefix, disk, path_suffix)

@@ -89,17 +89,17 @@ def create_ramdisk_worker(all_ramdisk_partitions: AllRamdiskPartInfo) -> str:
     return RAMDISK_BASE
 
 
-# TODO: Get total parent size between all physical mounts, make sure to exclude duplicates
-def get_simple_ramdisk_size(root_mount: MountInfo, physical_mounts: AllMounts):
+def get_simple_ramdisk_size(physical_mounts: AllMounts):
     config_size = RambootConfig.get_simple_ramdisk_size_gb()
 
     if config_size is not None:
         return config_size
 
-    if any(mount.is_raid() for mount in physical_mounts):
-        return sum(mount.get_size_gb() for mount in physical_mounts)
+    parent_disk_to_size_dict = {mount.get_parent_disk(): mount.get_parent_size_gb() for mount in physical_mounts if
+                                mount.get_parent_disk() is not None}
 
-    return root_mount.get_parent_size_gb()
+    # Just to make sure we don't have any None stragglers
+    return sum(val for val in parent_disk_to_size_dict.values() if val is not None)
 
 
 def get_simple_ramdisk_fstype(root_mount: MountInfo):
@@ -120,7 +120,7 @@ def create_ramdisk(physical_mounts: AllMounts) -> str:
     # zfs uses volumes as well, easier to assume a single partition
     if RambootConfig.get_use_simple_ramdisk() or root_mount.fstype in {"zfs", "btrfs"}:
 
-        ramdisk_size = get_simple_ramdisk_size(root_mount, physical_mounts)
+        ramdisk_size = get_simple_ramdisk_size(physical_mounts)
         ramdisk_fstype = get_simple_ramdisk_fstype(root_mount)
 
         # Otherwise we can get it from the size of the disk that root is on

@@ -3,23 +3,11 @@ from __future__ import annotations
 import configparser
 import json
 import os
-from configparser import ConfigParser
 
 
 class RambootConfig:
-
-    @classmethod
-    def get_config_file(cls) -> str:
-        return os.getenv("RAMBOOT_CONFIG", "/etc/ramboot.conf")
-
-    @classmethod
-    def _create_config_parser(cls) -> ConfigParser:
-        config = configparser.ConfigParser()
-        config.read(cls.get_config_file())
-
-        return config
-
-    _config = _create_config_parser()
+    _config = configparser.ConfigParser()
+    _config.read(os.getenv("RAMBOOT_CONFIG", "/etc/ramboot.conf"))
 
     @classmethod
     def get_config(cls):
@@ -52,3 +40,7 @@ class RambootConfig:
     @classmethod
     def get_fstab_file(cls):
         return cls._config.get("mounts", "fstab_file", fallback="/etc/fstab")
+
+    @classmethod
+    def get_zfs_alternative_ramdisk_fstype(cls) -> str:
+        return cls._config.get("ramdisk_simple", "zfs_replacement_fstype", fallback="ext4")

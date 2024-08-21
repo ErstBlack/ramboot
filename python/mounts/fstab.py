@@ -1,8 +1,6 @@
 import os
-from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from mounts.mount_info import MountInfo, AllMounts
-from mounts.mounts import check_for_ignored_mounts
 from utils.ramboot_config import RambootConfig
 
 
@@ -20,23 +18,11 @@ def cleanup_fstab(fstab_lines: List[str]):
 
 def get_mounts() -> List[MountInfo]:
     fstab = cleanup_fstab(read_fstab(RambootConfig.get_fstab_file()))
-
-    mount_points = [MountInfo.create_mount_info(line) for line in fstab]
-    mount_points = check_for_ignored_mounts(mount_points)
-
-    return mount_points
-
-
-def get_all_mounts_fast() -> List[MountInfo]:
-    fstab = RambootConfig.get_fstab_file()
-    with ThreadPoolExecutor() as pool:
-        mount_points = pool.map(MountInfo.create_mount_info, fstab)
-
-    return list(mount_points)
+    return [MountInfo.create_mount_info(line) for line in fstab]
 
 
 def replace_fstab(all_mounts: AllMounts, ramdisk_base: str) -> None:
-    fstab_path = os.path.join(ramdisk_base, RambootConfig.get_fstab_file())
+    fstab_path = os.path.join(ramdisk_base, RambootConfig.get_fstab_file().lstrip(os.path.sep))
     fstab_lines = [mount.to_fstab_line() for mount in all_mounts if not mount.is_physical()]
 
     with open(fstab_path, "w") as f:

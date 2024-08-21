@@ -4,13 +4,19 @@ from collections.abc import Sequence
 from typing import List
 
 from mounts.mount_info import MountInfo
+from utils.ramboot_config import RambootConfig
 
 
 class RamdiskPartInfo:
-    def __init__(self, size_in_gb: int, destination: str, order: int, fstype: str = "xfs"):
+    def __init__(self, size_in_gb: int, destination: str, order: int, fstype: str = "ext4"):
         self.size_in_gb = size_in_gb
         self.destination = destination
         self.order = order
+
+        # zfs is not a valid partition format
+        if fstype == "zfs":
+            fstype = RambootConfig.get_zfs_alternative_ramdisk_fstype()
+
         self.fstype = fstype
 
     @classmethod

@@ -14,5 +14,7 @@ def get_all_mounts() -> AllMounts:
     fstab_mounts = fstab.get_mounts()
     zfs_mounts = zfs.get_mounts()
 
+    all_mounts = check_for_ignored_mounts(fstab_mounts + zfs_mounts)
+
     # TODO: Include ZFS
-    return AllMounts(fstab_mounts + zfs_mounts)
+    return AllMounts(all_mounts)

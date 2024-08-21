@@ -33,5 +33,5 @@ def boot() -> None:
     # Pivot Root
     pivot_root(ramdisk_base)
 
-    # Hide block devices used for mounts
+    # Hide devices used for mounts
     hide_disks(all_mounts)

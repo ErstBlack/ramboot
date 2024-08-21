@@ -7,9 +7,10 @@ from utils.shell_commands import check_output_wrapper
 
 def get_zfs_volumes() -> List[ZfsInfo]:
     zfs_list_cmd = ["/usr/sbin/zfs", "list", "-H", "-o", "name,mountpoint"]
-    zfs_volumes = check_output_wrapper(zfs_list_cmd)
-
-    zfs_volumes = zfs_volumes.split()
+    try:
+        zfs_volumes = check_output_wrapper(zfs_list_cmd).split("\n")
+    except FileNotFoundError:
+        return []
 
     zfs_infos = []
     for idx, zfs_vol in enumerate(zfs_volumes):

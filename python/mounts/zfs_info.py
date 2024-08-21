@@ -32,7 +32,7 @@ class ZfsInfo:
         if self._pool:
             return self._pool
 
-        return shlex.split(self.name)[0]
+        return self.name.split("/")[0]
 
     def get_size_gb(self) -> int:
         if self._size_gb:
