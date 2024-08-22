@@ -1,25 +1,8 @@
-import os.path
-import subprocess
 from glob import glob
-from typing import List
+
+from utils.shell_commands import run_commands
 
 from utils.ramboot_config import RambootConfig
-
-
-def run_commands(*args: List[str]) -> None:
-    for arg in args:
-        # Early exit, if we don't have one of the commands, things will break anyway
-        if not check_command(arg):
-            return
-
-        try:
-            subprocess.run(arg)
-        except FileNotFoundError:
-            pass
-
-
-def check_command(cmd: List[str]) -> bool:
-    return os.path.exists(cmd[0])
 
 
 def activate_vgs() -> None:

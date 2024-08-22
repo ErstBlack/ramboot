@@ -1,14 +1,21 @@
-from utils.initial_activations import initial_activations
-from utils.disks import hide_disks
-from mounts.mounts import get_all_mounts
-from utils.move_mounts import move_system_mounts
-from utils.pivot_root import pivot_root
+from startup.initial_activations import initial_activations
+from finish.disks import hide_disks
+from setup.mounts.mounts import get_all_mounts
+from finish.move_mounts import move_system_mounts
+from finish.pivot_root import pivot_root
 from ramdisk.main_ramdisk import create_ramdisk
-from utils.copy_mounts import copy_all_mounts
-from mounts.fstab import replace_fstab
+from ramdisk.copy_mounts import copy_all_mounts
+from setup.mounts.fstab import replace_fstab
 
 
 def boot() -> None:
+    """
+    Kickoff function to start the ramboot
+
+    Returns:
+        None
+    """
+
     # Attempt to activate/scan filesystems
     initial_activations()
 

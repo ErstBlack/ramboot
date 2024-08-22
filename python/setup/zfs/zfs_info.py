@@ -4,7 +4,7 @@ from typing import List
 from collections import defaultdict
 from collections.abc import Sequence
 
-from mounts.mount_info import MountInfo
+from setup.mounts.mount_info import MountInfo
 from utils.shell_commands import check_output_wrapper
 
 

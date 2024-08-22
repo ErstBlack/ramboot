@@ -5,8 +5,8 @@ import os
 from typing import List
 from collections.abc import Sequence
 
-from lvm.lvm_info import check_if_lvm, get_lvm_partition, get_lvm_size, get_lvm_map
-from raid.raid_info import check_if_raid
+from setup.lvm.lvm_info import check_if_lvm, get_lvm_partition, get_lvm_size, get_lvm_map
+from setup.raid.raid_info import check_if_raid
 from utils.shell_commands import check_output_wrapper
 
 
@@ -22,7 +22,8 @@ class MountInfo:
     SIZE_CMD = ["lsblk", "--nodeps", "--noheadings", "--bytes", "--output", "SIZE"]
 
     def __init__(self, source: str, dest: str, fstype: str, fsopts: List[str], dump: str, fsck: str):
-        """Initialize a MountInfo object with information from an fstab entry.
+        """
+        Initialize a MountInfo object with information from an fstab entry.
 
         Args:
             source (str): The source device or filesystem.
@@ -82,7 +83,8 @@ class MountInfo:
         self._initialized = True
 
     def __eq__(self, other: MountInfo) -> bool:
-        """Determine if two MountInfo objects represent the same mount.
+        """
+        Determine if two MountInfo objects represent the same mount.
 
         Args:
             other (MountInfo): Another MountInfo to compare equality to.
@@ -97,7 +99,8 @@ class MountInfo:
 
     @classmethod
     def create_mount_info(cls, fstab_line: str) -> MountInfo:
-        """Create a MountInfo object from a line in an fstab file.
+        """
+        Create a MountInfo object from a line in an fstab file.
 
         Args:
             fstab_line (str): A single line from an fstab file.
@@ -111,7 +114,8 @@ class MountInfo:
 
     # Boolean checks for type
     def is_remote(self) -> bool:
-        """Check if the mount is a remote filesystem.
+        """
+        Check if the mount is a remote filesystem.
 
         Returns:
             bool: True if the filesystem is remote, False otherwise.
@@ -127,7 +131,8 @@ class MountInfo:
         return self.dest == "/"
 
     def is_physical(self) -> bool:
-        """Check if this is a physical mount.
+        """
+        Check if this is a physical mount.
 
         Returns:
             bool: True if this is a physical mount, False otherwise.
@@ -135,7 +140,8 @@ class MountInfo:
         return self.fstype not in MountInfo.SOFT_FSTYPES | MountInfo.REMOTE_FSTYPES or self.is_root()
 
     def is_lvm(self) -> bool:
-        """Check if this is an LVM mount.
+        """
+        Check if this is an LVM mount.
 
         Returns:
             bool: True if this is an LVM mount, False otherwise.
@@ -149,7 +155,8 @@ class MountInfo:
         return check_if_lvm(self.source)
 
     def is_raid(self):
-        """Check if this is a RAID mount.
+        """
+        Check if this is a RAID mount.
 
         Returns:
             bool: True if this is a RAID mount, False otherwise.
@@ -163,7 +170,8 @@ class MountInfo:
         return check_if_raid(self.source)
 
     def get_uuid(self) -> str | None:
-        """Get the UUID of the mount.
+        """
+        Get the UUID of the mount.
 
         Returns:
             str | None: The UUID if available, None otherwise.
@@ -178,7 +186,8 @@ class MountInfo:
             return self.source.split("=")[-1]
 
     def get_label(self) -> str | None:
-        """Get the label of the mount.
+        """
+        Get the label of the mount.
 
         Returns:
             str | None: The label if available, None otherwise.
@@ -193,7 +202,8 @@ class MountInfo:
             return self.source.split("=")[-1]
 
     def get_part_uuid(self) -> str | None:
-        """Get the partition UUID of the mount.
+        """
+        Get the partition UUID of the mount.
 
         Returns:
             str | None: The partition UUID if available, None otherwise.
@@ -208,7 +218,8 @@ class MountInfo:
             return self.source.split("=")[-1]
 
     def update_source(self) -> str:
-        """Update the source to a better device mapping if possible.
+        """
+        Update the source to a better device mapping if possible.
 
         Returns:
             str: The updated source path.
@@ -225,7 +236,8 @@ class MountInfo:
         return self.source
 
     def update_lvm_source(self):
-        """Update the source to a better device mapping if we are an lvm.
+        """
+        Update the source to a better device mapping if we are an lvm.
 
         Returns:
             str: The updated source path.
@@ -237,7 +249,8 @@ class MountInfo:
         return self.source
 
     def get_partition(self) -> str | None:
-        """Get the partition information for this mount.
+        """
+        Get the partition information for this mount.
 
         Returns:
             str | None: The partition path if available, None otherwise.
@@ -262,7 +275,8 @@ class MountInfo:
             return self.source
 
     def get_parent_disk(self) -> str | None:
-        """Get the parent disk of this mount's partition.
+        """
+        Get the parent disk of this mount's partition.
 
         Returns:
             str | None: The parent disk path if available, None otherwise.
@@ -282,7 +296,8 @@ class MountInfo:
             return f"/dev/{os.path.basename(parent_full)}"
 
     def get_parent_size_gb(self) -> int | None:
-        """Get the size of the parent disk in gigabytes.
+        """
+        Get the size of the parent disk in gigabytes.
 
         Returns:
             int | None: The size in GB if available, None otherwise.
@@ -300,7 +315,8 @@ class MountInfo:
             return math.ceil(float(size_in_bytes) / 1024 ** 3)
 
     def get_size_gb(self) -> int | None:
-        """Get the size of this mount's partition in gigabytes.
+        """
+        Get the size of this mount's partition in gigabytes.
 
         Returns:
             int | None: The size in GB if available, None otherwise.
@@ -318,7 +334,8 @@ class MountInfo:
             return math.ceil(float(size_in_bytes) / 1024 ** 3)
 
     def get_dest_depth(self) -> int | float:
-        """Calculate the depth of the mount point in the filesystem hierarchy.
+        """
+        Calculate the depth of the mount point in the filesystem hierarchy.
 
         Returns:
             int | float: The depth as an integer, or float('inf') for odd cases.
@@ -338,7 +355,8 @@ class MountInfo:
         return count + 1
 
     def to_fstab_line(self) -> str:
-        """Convert this MountInfo object back to an fstab line format.
+        """
+        Convert this MountInfo object back to an fstab line format.
 
         Returns:
             str: A string representing this mount in fstab format.
@@ -350,7 +368,8 @@ class AllMounts(Sequence):
     """Represents a collection of MountInfo objects, typically all mounts in a system."""
 
     def __init__(self, mount_list: List[MountInfo]):
-        """Initialize an AllMounts object with a list of MountInfo objects.
+        """
+        Initialize an AllMounts object with a list of MountInfo objects.
 
         Args:
             mount_list (List[MountInfo]): A list of MountInfo objects.
@@ -374,7 +393,8 @@ class AllMounts(Sequence):
         self._sort_by_depth()
 
     def __next__(self) -> MountInfo:
-        """Implement the iterator protocol for AllMounts.
+        """
+        Implement the iterator protocol for AllMounts.
 
         Returns:
             MountInfo: The next MountInfo object in the sequence.
@@ -383,7 +403,8 @@ class AllMounts(Sequence):
             yield mount
 
     def __len__(self) -> int:
-        """Get the number of mounts in this collection.
+        """
+        Get the number of mounts in this collection.
 
         Returns:
             int: The number of mounts.
@@ -391,7 +412,8 @@ class AllMounts(Sequence):
         return len(self.mount_list)
 
     def __getitem__(self, item) -> MountInfo:
-        """Get a specific MountInfo object by index.
+        """
+        Get a specific MountInfo object by index.
 
         Args:
             item: The index of the desired MountInfo object.
@@ -406,7 +428,8 @@ class AllMounts(Sequence):
         self.mount_list = sorted(self.mount_list, key=lambda mount: mount.get_dest_depth())
 
     def get_physical_mounts(self) -> AllMounts:
-        """Get a new AllMounts object containing only physical mounts.
+        """
+        Get a new AllMounts object containing only physical mounts.
 
         Returns:
             AllMounts: An AllMounts object with only physical mounts.
@@ -414,7 +437,8 @@ class AllMounts(Sequence):
         return AllMounts([mount for mount in self.mount_list if mount.is_physical()])
 
     def get_root_mount(self) -> MountInfo:
-        """Get the root mount from this collection.
+        """
+        Get the root mount from this collection.
 
         Returns:
             MountInfo: The MountInfo object representing the root mount.
