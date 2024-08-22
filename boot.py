@@ -1,10 +1,10 @@
-from startup.initial_activations import initial_activations
-from finish.disks import hide_disks
-from setup.mounts.mounts import get_all_mounts
-from finish.move_mounts import move_system_mounts
-from finish.pivot_root import pivot_root
+from startup import initial_activations
+from finish import hide_disks
+from setup import get_all_mounts
+from finish import move_system_mounts
+from finish import pivot_root
 from ramdisk.main_ramdisk import create_ramdisk
-from ramdisk.copy_mounts import copy_all_mounts
+from ramdisk import copy_all_mounts
 from setup.mounts.fstab import replace_fstab
 
 
