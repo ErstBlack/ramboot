@@ -1,0 +1,38 @@
+name: Compile Ramboot via PyInstaller
+
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    container:
+      image: rockylinux:8
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Required RPM Packages
+        run: dnf install --assumeyes python38 python38-devel python38-pip python38-setuptools python38-wheel zlib-devel
+
+      - name: Install Required Python Packages
+        run: python3.8 -m pip install --upgrade pip && python3.8 -m pip install --upgrade setuptools wheel && python3.8 -m pip install --upgrade pyinstaller
+
+      - name: Run Pyinstaller
+        run: pyinstaller --onefile ramboot.py
+
+      - name: Archive Ramboot binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ramboot
+          path: dist/ramboot
