@@ -1,5 +1,3 @@
-from typing import List
-
 from setup.mounts.mount_info import MountInfo
 from setup.zfs.zfs_info import ZfsInfo, AllZfs
 from utils.shell_commands import check_output_wrapper

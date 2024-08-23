@@ -5,9 +5,10 @@ import os
 from typing import List
 from collections.abc import Sequence
 
-from setup.lvm.lvm_info import check_if_lvm, get_lvm_partition, get_lvm_size, get_lvm_map
+from setup.lvm.lvm_info import check_if_lvm, get_lvm_map
 from setup.raid.raid_info import check_if_raid
-from utils.shell_commands import check_output_wrapper
+from utils.shell_commands import get_device_partition, get_device_disk, get_partition_size, \
+    get_disk_size
 
 
 class MountInfo:
@@ -258,9 +259,6 @@ class MountInfo:
         if self._partition is not None:
             return self._partition
 
-        if self.is_lvm():
-            return get_lvm_partition(self.source)
-
         if self.is_raid():
             return self.source
 
@@ -269,7 +267,7 @@ class MountInfo:
 
         # If any of these aren't None, we should have a good place to check for the partition
         if any(val is not None for val in (self._uuid, self._part_uuid, self._label)):
-            return check_output_wrapper(MountInfo.READLINK_CMD + [self.source])
+            return get_device_partition(self.source)
 
         if self.source.startswith("/dev"):
             return self.source
@@ -288,12 +286,23 @@ class MountInfo:
             return self.source
 
         if self._partition is not None:
-            partition_base = os.path.basename(self._partition)
+            return get_device_disk(self._partition)
 
-            # Symlink points to the parent of the partition
-            parent_full = check_output_wrapper(MountInfo.READLINK_CMD + [f"/sys/class/block/{partition_base}/.."])
+    def get_size_gb(self) -> int | None:
+        """
+        Get the size of this mount's partition in gigabytes.
 
-            return f"/dev/{os.path.basename(parent_full)}"
+        Returns:
+            int | None: The size in GB if available, None otherwise.
+        """
+        if self._size_gb is not None:
+            return self._size_gb
+
+        if self._partition is not None:
+            size_in_bytes = get_partition_size(self._partition)
+
+            # Convert from bytes to GB
+            return math.ceil(float(size_in_bytes) / 1024 ** 3)
 
     def get_parent_size_gb(self) -> int | None:
         """
@@ -309,26 +318,7 @@ class MountInfo:
             return self.get_size_gb()
 
         if self._parent_disk is not None:
-            size_in_bytes = check_output_wrapper(MountInfo.SIZE_CMD + [self._parent_disk])
-
-            # Convert from bytes to GB
-            return math.ceil(float(size_in_bytes) / 1024 ** 3)
-
-    def get_size_gb(self) -> int | None:
-        """
-        Get the size of this mount's partition in gigabytes.
-
-        Returns:
-            int | None: The size in GB if available, None otherwise.
-        """
-        if self._size_gb is not None:
-            return self._size_gb
-
-        if self.is_lvm():
-            return get_lvm_size(self.source)
-
-        if self._partition is not None:
-            size_in_bytes = check_output_wrapper(MountInfo.SIZE_CMD + [self._partition])
+            size_in_bytes = get_disk_size(self._parent_disk)
 
             # Convert from bytes to GB
             return math.ceil(float(size_in_bytes) / 1024 ** 3)

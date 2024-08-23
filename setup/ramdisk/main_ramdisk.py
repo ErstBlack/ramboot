@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from ramdisk.ramdisk_part_info import AllRamdiskPartInfo, RamdiskPartInfo
+from setup.ramdisk.ramdisk_part_info import AllRamdiskPartInfo, RamdiskPartInfo
 from setup.mounts.mount_info import AllMounts, MountInfo
 from utils.ramboot_config import RambootConfig
 
