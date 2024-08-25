@@ -23,12 +23,17 @@ def hide_zpools(all_mounts: AllMounts) -> None:
 
     cache_file = "/etc/zfs/zpool.cache"
     zfs_list_dir = "/etc/zfs/zfs-list.cache"
+
     list_cache_files = glob(os.path.join(zfs_list_dir, "*"))
 
     for f in list_cache_files + [cache_file]:
         if os.path.exists(f) and os.path.isfile(f):
             os.remove(f)
 
+    # Need to make sure these systemd targets are disabled as well.  Probably just need to simulate systemctl mask
+    #   - zfs-volumes.target
+    #   - zfs-import.target
+    #   - zfs.target
 
 def hide_disks(all_mounts: AllMounts) -> None:
     """
@@ -61,10 +66,12 @@ def hide_block_devices(all_mounts: AllMounts) -> None:
     Returns:
         None
     """
-    if RambootConfig.get_hide_disks():
+    if not RambootConfig.get_hide_disks():
         return
 
     # TODO: See if there's a way to handle this nicely for regular root partition.
+    # TODO: Test for zfs and btrfs
+    # TODO: Add luks check, luks breaks this
     # Maybe create a baby ramdisk only to hold the ramboot.sh?
     # Could probably get this working with a systemd or equivalent service that runs after the init?
     if not all_mounts.get_root_mount().is_lvm():

@@ -6,8 +6,7 @@ from typing import List
 from collections.abc import Sequence
 
 from setup.lvm.lvm_info import check_if_lvm, get_lvm_map
-from setup.raid.raid_info import check_if_raid
-from utils.shell_commands import get_device_partition, get_device_disk, get_partition_size, \
+from utils.shell_commands import get_device_partition, get_device_disk, get_mount_size, \
     get_disk_size
 
 
@@ -46,7 +45,6 @@ class MountInfo:
 
         # Derived values
         self._is_lvm: bool | None = None
-        self._is_raid: bool | None = None
         self._uuid: str | None = None
         self._part_uuid: str | None = None
         self._label: str | None = None
@@ -69,7 +67,6 @@ class MountInfo:
 
         # Figure out if we're on an lvm
         self._is_lvm = self.is_lvm()
-        self._is_raid = self.is_raid()
 
         # Check source again if we're on an lvm
         self.source = self.update_lvm_source()
@@ -154,21 +151,6 @@ class MountInfo:
             return False
 
         return check_if_lvm(self.source)
-
-    def is_raid(self):
-        """
-        Check if this is a RAID mount.
-
-        Returns:
-            bool: True if this is a RAID mount, False otherwise.
-        """
-        if self._is_raid is not None:
-            return self._is_raid
-
-        if not self.is_physical() or self.is_remote():
-            return False
-
-        return check_if_raid(self.source)
 
     def get_uuid(self) -> str | None:
         """
@@ -259,9 +241,6 @@ class MountInfo:
         if self._partition is not None:
             return self._partition
 
-        if self.is_raid():
-            return self.source
-
         if not self.is_physical() or self.is_remote():
             return None
 
@@ -270,7 +249,7 @@ class MountInfo:
             return get_device_partition(self.source)
 
         if self.source.startswith("/dev"):
-            return self.source
+            return get_device_partition(self.source)
 
     def get_parent_disk(self) -> str | None:
         """
@@ -282,15 +261,12 @@ class MountInfo:
         if self._parent_disk is not None:
             return self._parent_disk
 
-        if self.is_raid():
-            return self.source
-
         if self._partition is not None:
-            return get_device_disk(self._partition)
+            return get_device_disk(self.source)
 
     def get_size_gb(self) -> int | None:
         """
-        Get the size of this mount's partition in gigabytes.
+        Get the size of this mount in gigabytes.
 
         Returns:
             int | None: The size in GB if available, None otherwise.
@@ -299,7 +275,7 @@ class MountInfo:
             return self._size_gb
 
         if self._partition is not None:
-            size_in_bytes = get_partition_size(self._partition)
+            size_in_bytes = get_mount_size(self.source)
 
             # Convert from bytes to GB
             return math.ceil(float(size_in_bytes) / 1024 ** 3)
@@ -313,9 +289,6 @@ class MountInfo:
         """
         if self._parent_size_gb is not None:
             return self._parent_size_gb
-
-        if self.is_raid():
-            return self.get_size_gb()
 
         if self._parent_disk is not None:
             size_in_bytes = get_disk_size(self._parent_disk)

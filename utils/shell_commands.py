@@ -11,7 +11,7 @@ def check_output_wrapper(cmd: List[str]) -> str:
 
 
 def get_device_json_tree(device: str) -> dict:
-    get_device_full_json_tree_cmd = ["lsblk", "--fs", "--bytes", "--json", "--paths", "--inverse"]
+    get_device_full_json_tree_cmd = ["lsblk", "--output-all", "--bytes", "--json", "--paths", "--inverse"]
     output = check_output_wrapper(get_device_full_json_tree_cmd + [device])
 
     j = json.loads(output)
@@ -24,7 +24,7 @@ def get_field_from_key_val(device: str, field: str, key: str, val: str) -> str |
             return _tree[_field]
 
         if "children" in _tree:
-            return get_field_from_key_val(_tree["children"][0], _field, _key, _val)
+            return check(_tree["children"][0], _field, _key, _val)
 
         return None
 
@@ -32,8 +32,25 @@ def get_field_from_key_val(device: str, field: str, key: str, val: str) -> str |
     return check(tree, field, key, val)
 
 
-def get_partition_size(device: str) -> int:
-    return int(get_field_from_key_val(device, "size", "type", "part"))
+def get_first_matching_field(device: str, field: str, continue_on_none: bool = True) -> str | None:
+    def check(_tree: dict, _field: str, _continue_on_none: bool) -> str | None:
+        if _field in tree:
+            val = _tree[_field]
+
+            if val is not None or not _continue_on_none:
+                return val
+
+        if "children" in _tree:
+            return check(_tree["children"][0], _field, _continue_on_none)
+
+        return None
+
+    tree = get_device_json_tree(device)
+    return check(tree, field, continue_on_none)
+
+
+def get_mount_size(device: str) -> int:
+    return int(get_first_matching_field(device, "size", False))
 
 
 def get_disk_size(device: str) -> int:
