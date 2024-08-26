@@ -1,8 +1,30 @@
+import itertools
 import os.path
 
 from glob import glob
 from setup.mounts.mount_info import AllMounts
 from utils.ramboot_config import RambootConfig
+
+
+def delete_zpool_cache() -> None:
+    cache_file = "/etc/zfs/zpool.cache"
+    zfs_list_dir = "/etc/zfs/zfs-list.cache"
+
+    list_cache_files = glob(os.path.join(zfs_list_dir, "*"))
+
+    for f in list_cache_files + [cache_file]:
+        if os.path.exists(f) and os.path.isfile(f):
+            os.remove(f)
+
+
+def mask_zfs_targets() -> None:
+    target_dir = "/etc/systemd/system"
+
+    # Most commonly used zfs targets, might want to allow user to add additional/overwrite via config
+    target_files = ["zfs-volumes.target", "zfs-import.target", "zfs.target"]
+
+    for target_file in target_files:
+        os.symlink("/dev/null", os.path.join(target_dir, target_file))
 
 
 def hide_zpools(all_mounts: AllMounts) -> None:
@@ -21,19 +43,9 @@ def hide_zpools(all_mounts: AllMounts) -> None:
     if all_mounts.get_root_mount().fstype != "zfs":
         return
 
-    cache_file = "/etc/zfs/zpool.cache"
-    zfs_list_dir = "/etc/zfs/zfs-list.cache"
+    delete_zpool_cache()
+    mask_zfs_targets()
 
-    list_cache_files = glob(os.path.join(zfs_list_dir, "*"))
-
-    for f in list_cache_files + [cache_file]:
-        if os.path.exists(f) and os.path.isfile(f):
-            os.remove(f)
-
-    # Need to make sure these systemd targets are disabled as well.  Probably just need to simulate systemctl mask
-    #   - zfs-volumes.target
-    #   - zfs-import.target
-    #   - zfs.target
 
 def hide_disks(all_mounts: AllMounts) -> None:
     """
@@ -79,8 +91,14 @@ def hide_block_devices(all_mounts: AllMounts) -> None:
 
     path_prefix = "/sys/block"
     path_suffix = "device/delete"
-    # Get all disks, e.g. sda, sdb, etc.
-    disks = {os.path.basename(mount.get_parent_disk()) for mount in all_mounts if mount.get_parent_disk() is not None}
+
+    # Get all parent_disks
+    disks = [mount.get_parent_disks() for mount in all_mounts if mount.get_parent_disks() is not None]
+
+    # Unpack nested lists, get the basename, then remove duplicates
+    # i.e.
+    # [[ /dev/sda, /dev/sdb ], [ /dev/sda, /dev/sdb ]] -> { sda, sdb }
+    disks = set(os.path.basename(disk) for disk in itertools.chain.from_iterable(disks))
 
     for disk in disks:
         delete_path = os.path.join(path_prefix, disk, path_suffix)

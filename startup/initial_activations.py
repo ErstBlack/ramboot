@@ -6,7 +6,7 @@ from utils.ramboot_config import RambootConfig
 
 
 def activate_vgs() -> None:
-    activate_cmd = ["/usr/sbin/vgchange", "-a", "y"]
+    activate_cmd = ["/usr/sbin/vgchange", "--activate", "y"]
     mknode_cmd = ["/usr/sbin/vgscan", "--mknodes"]
 
     run_commands(activate_cmd, mknode_cmd)

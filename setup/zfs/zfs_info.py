@@ -28,11 +28,11 @@ class ZfsInfo:
         self._pool = self.get_pool()
         self._size_gb = self.get_size_gb()
 
-    def get_pool(self) -> str:
+    def get_pool(self) -> List[str]:
         if self._pool:
             return self._pool
 
-        return self.name.split("/")[0]
+        return [self.name.split("/")[0]]
 
     def get_size_gb(self) -> int:
         if self._size_gb:
@@ -48,9 +48,11 @@ class ZfsInfo:
         mount = MountInfo(self.name, self.dest, "zfs", [], "0", "0")
         mount._is_lvm = False
         mount._is_raid = False
-        mount._partition = self.name
+        # TODO: Create a get_partitions function to get partitions from zpool list -LP
+        mount._partitions = [self.name]
         mount._size_gb = self.get_size_gb()
-        mount._parent_disk = self.get_pool()
+        # TODO: Create a get_parent_disks function to get partitions from list of partitions
+        mount._parent_disks = self.get_pool()
         mount._parent_size_gb = self.get_size_gb()
         mount._initialized = True
 

@@ -171,12 +171,14 @@ def get_simple_ramdisk_size(physical_mounts: AllMounts) -> int:
         return config_size
 
     # Create a dictionary of parent_disks to parent_disk_size_gb
-    # Making sure that we don't count the same parent_disk multiple times
-    parent_disk_to_size_dict = {mount.get_parent_disk(): mount.get_parent_size_gb() for mount in physical_mounts if
-                                mount.get_parent_disk() is not None}
+    # Making sure that we don't count the same parent_disk combination multiple times
+    # Worst case, we end up inflating the size more than needed if we have some kind of weird striping
+    # i.e. sda - sdb and sdb - sdc would be considered different parent disks
+    parent_disks_to_size_dict = {tuple(mount.get_parent_disks()): mount.get_parent_size_gb() for mount in
+                                 physical_mounts if mount.get_parent_disks() is not None}
 
-    # Get the sum of the parent disk sizes, making sure to exclude weird None stragglers
-    return sum(val for val in parent_disk_to_size_dict.values() if val is not None)
+    # Get the sum of the parent_gb_sizes
+    return sum(val for val in parent_disks_to_size_dict.values())
 
 
 def get_simple_ramdisk_fstype(root_mount: MountInfo) -> str:

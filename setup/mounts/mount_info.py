@@ -6,7 +6,7 @@ from typing import List
 from collections.abc import Sequence
 
 from setup.lvm.lvm_info import check_if_lvm, get_lvm_map
-from utils.shell_commands import get_device_partition, get_device_disk, get_mount_size, \
+from utils.shell_commands import get_device_partitions, get_device_disks, get_mount_size, \
     get_disk_size
 
 
@@ -48,9 +48,9 @@ class MountInfo:
         self._uuid: str | None = None
         self._part_uuid: str | None = None
         self._label: str | None = None
-        self._partition: str | None = None
+        self._partitions: List[str] | None = None
         self._size_gb: int | None = None
-        self._parent_disk: str | None = None
+        self._parent_disks: List[str] | None = None
         self._parent_size_gb: int | None = None
 
     def initialize(self):
@@ -72,9 +72,9 @@ class MountInfo:
         self.source = self.update_lvm_source()
 
         # Continue figuring out values
-        self._partition = self.get_partition()
+        self._partitions = self.get_partitions()
         self._size_gb = self.get_size_gb()
-        self._parent_disk = self.get_parent_disk()
+        self._parent_disks = self.get_parent_disks()
         self._parent_size_gb = self.get_parent_size_gb()
 
         # Setting initialized flag
@@ -231,38 +231,35 @@ class MountInfo:
 
         return self.source
 
-    def get_partition(self) -> str | None:
+    def get_partitions(self) -> List[str] | None:
         """
         Get the partition information for this mount.
 
         Returns:
             str | None: The partition path if available, None otherwise.
         """
-        if self._partition is not None:
-            return self._partition
+        if self._partitions is not None:
+            return self._partitions
 
         if not self.is_physical() or self.is_remote():
             return None
 
         # If any of these aren't None, we should have a good place to check for the partition
-        if any(val is not None for val in (self._uuid, self._part_uuid, self._label)):
-            return get_device_partition(self.source)
+        if any(val is not None for val in (self._uuid, self._part_uuid, self._label)) or self.source.startswith("/dev"):
+            return get_device_partitions(self.source)
 
-        if self.source.startswith("/dev"):
-            return get_device_partition(self.source)
-
-    def get_parent_disk(self) -> str | None:
+    def get_parent_disks(self) -> List[str] | None:
         """
         Get the parent disk of this mount's partition.
 
         Returns:
             str | None: The parent disk path if available, None otherwise.
         """
-        if self._parent_disk is not None:
-            return self._parent_disk
+        if self._parent_disks is not None:
+            return self._parent_disks
 
-        if self._partition is not None:
-            return get_device_disk(self.source)
+        if self._partitions is not None and len(self._partitions):
+            return get_device_disks(self.source)
 
     def get_size_gb(self) -> int | None:
         """
@@ -274,7 +271,7 @@ class MountInfo:
         if self._size_gb is not None:
             return self._size_gb
 
-        if self._partition is not None:
+        if self._partitions is not None and len(self._partitions):
             size_in_bytes = get_mount_size(self.source)
 
             # Convert from bytes to GB
@@ -290,8 +287,10 @@ class MountInfo:
         if self._parent_size_gb is not None:
             return self._parent_size_gb
 
-        if self._parent_disk is not None:
-            size_in_bytes = get_disk_size(self._parent_disk)
+        if self._parent_disks is not None:
+            # Get size of all disks in case we have a raid
+            # Assuming a normal type of raid that is based off of the smallest disk in the system
+            size_in_bytes = min(get_disk_size(disk) for disk in self._parent_disks)
 
             # Convert from bytes to GB
             return math.ceil(float(size_in_bytes) / 1024 ** 3)

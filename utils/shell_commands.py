@@ -57,12 +57,28 @@ def get_disk_size(device: str) -> int:
     return int(get_field_from_key_val(device, "size", "type", "disk"))
 
 
-def get_device_disk(device: str) -> str:
-    return get_field_from_key_val(device, "name", "type", "disk")
+def get_all_fields_from_key_val(device: str, field: str, key: str, val: str) -> List[str]:
+    tree = get_device_json_tree(device)
+    matches = set()
+
+    def traverse(_tree: dict):
+        if key in _tree and _tree[key] == val:
+            matches.add(_tree[field])
+
+        if "children" in _tree:
+            for subtree in _tree["children"]:
+                traverse(subtree)
+
+    traverse(tree)
+    return sorted(matches)
 
 
-def get_device_partition(device: str) -> str:
-    return get_field_from_key_val(device, "name", "type", "part")
+def get_device_disks(device: str) -> List[str]:
+    return get_all_fields_from_key_val(device, "name", "type", "disk")
+
+
+def get_device_partitions(device: str) -> List[str]:
+    return get_all_fields_from_key_val(device, "name", "type", "part")
 
 
 def get_device_type(device: str) -> str:
