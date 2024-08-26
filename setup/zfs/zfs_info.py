@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import itertools
 import math
 import shlex
 from typing import List
@@ -5,7 +8,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 from setup.mounts.mount_info import MountInfo
-from utils.shell_commands import check_output_wrapper
+from utils.shell_commands import check_output_wrapper, get_disk_size, get_device_disks
 
 
 class ZfsInfo:
@@ -16,23 +19,53 @@ class ZfsInfo:
         name, dest = shlex.split(zfs_vol)
 
         # Base values that we need
-        self.name = name
-        self.dest = dest
-        self.order = order
+        self.name: str = name
+        self.dest: str = dest
+        self.order: int = order
 
         # Derived Values
-        self._pool = None
-        self._size_gb = None
+        self._pool: str | None = None
+        self._size_gb: int | None = None
+        self._partitions: List[str] | None = None
+        self._parent_disks: List[str] | None = None
+        self._parent_size_gb: int | None = None
 
         # Figure out values
         self._pool = self.get_pool()
         self._size_gb = self.get_size_gb()
+        self._partitions = self.get_partitions()
+        self._parent_disks = self.get_parent_disks()
+        self._parent_size_gb = self.get_parent_size_gb()
 
-    def get_pool(self) -> List[str]:
+    def get_pool(self) -> str:
         if self._pool:
             return self._pool
 
-        return [self.name.split("/")[0]]
+        return self.name.split("/")[0]
+
+    def get_partitions(self) -> List[str]:
+        if self._partitions is not None:
+            return self._partitions
+
+        zpool_list_cmd = ["zpool", "status", "-L", "-P"]
+
+        # Get the result, split on newline and remove leading and trailing spaces
+        output = check_output_wrapper(zpool_list_cmd + [self.get_pool()])
+        lines = [line.strip() for line in output.split("\n")]
+
+        # Lines we care about start with partition
+        # e.g. /dev/sda3
+        return [line.split()[0] for line in lines if line.startswith("/dev")]
+
+    def get_parent_disks(self) -> List[str]:
+        if self._parent_disks is not None:
+            return self._parent_disks
+
+        if self._partitions is not None and len(self._partitions):
+            # Get disks from the partitions, then flatten list and remove duplicates
+            disks = set(itertools.chain.from_iterable(get_device_disks(device) for device in self._partitions))
+
+            return sorted(disks)
 
     def get_size_gb(self) -> int:
         if self._size_gb:
@@ -44,16 +77,24 @@ class ZfsInfo:
             # Convert from bytes to GB
             return math.ceil(float(size_in_bytes) / 1024 ** 3)
 
+    def get_parent_size_gb(self) -> int:
+        if self._parent_size_gb:
+            return self._parent_size_gb
+
+        if self._parent_disks is not None and len(self._parent_disks):
+            # Assuming a normal type of raid that is based off of the smallest disk in the system
+            size_in_bytes = min(get_disk_size(disk) for disk in self._parent_disks)
+
+            # Convert from bytes to GB
+            return math.ceil(float(size_in_bytes) / 1024 ** 3)
+
     def to_mount_info(self) -> MountInfo:
         mount = MountInfo(self.name, self.dest, "zfs", [], "0", "0")
         mount._is_lvm = False
-        mount._is_raid = False
-        # TODO: Create a get_partitions function to get partitions from zpool list -LP
-        mount._partitions = [self.name]
         mount._size_gb = self.get_size_gb()
-        # TODO: Create a get_parent_disks function to get partitions from list of partitions
-        mount._parent_disks = self.get_pool()
-        mount._parent_size_gb = self.get_size_gb()
+        mount._partitions = self.get_partitions()
+        mount._parent_disks = self.get_parent_disks()
+        mount._parent_size_gb = self.get_parent_size_gb()
         mount._initialized = True
 
         return mount
