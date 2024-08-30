@@ -15,11 +15,8 @@ class MountInfo:
         Represents information about a mount point from an fstab entry.
     """
     # Need to create a more comprehensive list
-    REMOTE_FSTYPES = {"nfs", "nfs4", "cifs", "fuse.s3fs", "fuse.ceph"}
-    SOFT_FSTYPES = {"swap", "tmpfs", "ramfs"}
-
-    READLINK_CMD = ["readlink", "--canonicalize"]
-    SIZE_CMD = ["lsblk", "--nodeps", "--noheadings", "--bytes", "--output", "SIZE"]
+    REMOTE_FSTYPES: set = {"nfs", "nfs4", "cifs", "fuse.s3fs", "fuse.ceph"}
+    SOFT_FSTYPES: set = {"swap", "tmpfs", "ramfs"}
 
     def __init__(self, source: str, dest: str, fstype: str, fsopts: List[str], dump: str, fsck: str):
         """
