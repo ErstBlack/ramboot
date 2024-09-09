@@ -1,7 +1,6 @@
 from glob import glob
 
 from utils.shell_commands import run_commands
-
 from utils.ramboot_config import RambootConfig
 
 
