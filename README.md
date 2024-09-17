@@ -16,6 +16,13 @@
 3. Update grub to point the `init` process at `ramboot.sh`, see below for an example of how to do this
    1. `grubby --update-kernel=all --args='init=/usr/sbin/ramboot/ramboot.sh'`
    2. `grub2-mkconfig --output /boot/efi/EFI/rocky/grub.cfg`
+  
+## Uninstallation
+
+1. Delete `/usr/sbin/ramboot/`
+2. Remove init argument from grub, see below for an example of how to do this
+   1. `grubby --update-kernel=all --remove-args='init'`
+   2. `grub2-mkconfig --output /boot/efi/EFI/rocky/grub.cfg`
 
 ## Configuration
 
