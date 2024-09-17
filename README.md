@@ -60,3 +60,6 @@ fstab_file = /etc/fstab  ; Path to the fstab file (default: /etc/fstab)
 
 - The Ramboot binary was built on a RockyLinux:8 container with GLIBC 2.28.
 - The application currently assumes that systemd is used as the init system.
+
+## Use Cases
+- ¯\\\_(ツ)_/¯
